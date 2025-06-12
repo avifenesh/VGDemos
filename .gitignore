@@ -1,0 +1,5 @@
+copilot-instructions.md
+node_modules/
+.env
+dump.rdb
+package-lock.json
