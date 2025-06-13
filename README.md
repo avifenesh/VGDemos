@@ -17,10 +17,18 @@
 - Bonus: Sharded Pub/Sub cluster efficiency
 
 ## Technology Stack
-- **Problem Clients**: `node-redis` (primary), `ioredis` (stretch)
-- **Solution**: `valkey-glide` + `GlideClusterClient`  
-- **Backend**: NestJS with service abstraction
-- **Frontend**: React with diagnostic status indicators
+- **Backend**: NestJS with WebSocket Gateway
+- **Frontend**: Alpine.js + Pico CSS (dual chat interface)
+- **Problem Client**: `node-redis` (demonstrates subscription loss)
+- **Solution Client**: `valkey-glide` (automatic subscription restoration)
+- **Infrastructure**: Valkey cluster with sharded Pub/Sub
+
+## Frontend Architecture
+- **Framework**: Alpine.js (~15KB) for reactive UI
+- **Styling**: Pico CSS (~10KB) for professional appearance  
+- **Layout**: Dual chat windows for side-by-side comparison
+- **Features**: Real-time status indicators, message delivery visualization
+- **No build step**: Open index.html in browser
 
 ## Success Metrics
 1. "I've experienced this exact problem" (Recognition)

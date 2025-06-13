@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valkey GLIDE Demo - Chat Resilience & Scalability</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Valkey Brand Colors */
+        :root {
+            /* Core Valkey Colors */
+            --valkey-blue-300: #0055A6;
+            --valkey-blue-200: #005EB8;
+            --valkey-blue-100: #337EC6;
+            --valkey-blue-000: #80AFDC;
+            
+            --valkey-blue-dk-300: #003b5c;
+            --valkey-blue-dk-200: #47738D;
+            --valkey-blue-dk-100: #A3BDCC;
+            --valkey-blue-dk-000: #E6EEF2;
+            
+            --valkey-blue-vibrant-300: #00a3e0;
+            --valkey-blue-vibrant-200: #46BDE9;
+            --valkey-blue-vibrant-100: #92D9F3;
+            --valkey-blue-vibrant-000: #CCF1FF;
+            
+            --valkey-green-000: #2CD5C4;
+            --valkey-green-100: #28C0B0;
+            --valkey-green-200: #1F9589;
+            --valkey-green-300: #166B62;
+            
+            --valkey-red-000: #F65275;
+            --valkey-red-100: #DD4A69;
+            --valkey-red-200: #AC3952;
+            --valkey-red-300: #7B293B;
+            
+            --valkey-yellow-000: #FFB81C;
+            --valkey-yellow-100: #CC9316;
+            
+            --valkey-purple-300: #4B1E5F;
+            --valkey-purple-200: #692A84;
+            --valkey-purple-100: #8736AA;
+            --valkey-purple-000: #963CBD;
+            
+            --valkey-grey-dk-300: #222222;
+            --valkey-grey-dk-200: #444444;
+            --valkey-grey-lt-300: #aaaaaa;
+            --valkey-grey-lt-000: #dddddd;
+            
+            --valkey-text: #002a3a;
+            --valkey-accent: #2cd5c4;
+            --valkey-core: #123678;
+            --valkey-attention: #3bf;
+            
+            /* Demo-specific settings */
+            --chat-height: 350px;
+            --status-font-size: 0.8rem;
+        }
+        
+        .demo-header { text-align: center; margin-bottom: 2rem; }
+        .demo-header h1 { margin-bottom: 0.5rem; }
+        .demo-header p { color: var(--pico-muted-color); }
+        
+        .chat-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 1.5rem; 
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .chat-grid { 
+                grid-template-columns: 1fr; 
+                gap: 1rem; 
+            }
+        }
+        
+        .chat-window {
+            border: 1px solid var(--pico-border-color);
+            border-radius: var(--pico-border-radius);
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: var(--pico-background-color);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--pico-border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info h3 { margin: 0; font-size: 1rem; }
+        .user-info small { color: var(--pico-muted-color); }
+        
+        .status-indicators {
+            display: flex;
+            gap: 0.5rem;
+            font-size: var(--status-font-size);
+        }
+        
+        .status-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--pico-border-radius);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-connected { 
+            background: var(--valkey-green-000); 
+            color: var(--valkey-green-300); 
+        }
+        .status-disconnected { 
+            background: var(--valkey-red-000); 
+            color: var(--valkey-red-300); 
+        }
+        .status-subscribed { 
+            background: var(--valkey-blue-vibrant-000); 
+            color: var(--valkey-blue-vibrant-300); 
+        }
+        .status-unsubscribed { 
+            background: var(--valkey-yellow-000); 
+            color: var(--valkey-yellow-100); 
+        }
+        
+        .client-badge {
+            background: var(--valkey-grey-lt-000);
+            color: var(--valkey-grey-dk-200);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--pico-border-radius);
+            font-size: var(--status-font-size);
+            font-family: monospace;
+        }
+        
+        .client-noderedis { 
+            background: var(--valkey-yellow-000); 
+            color: var(--valkey-yellow-100); 
+        }
+        .client-valkeyglide { 
+            background: var(--valkey-green-000); 
+            color: var(--valkey-green-300); 
+        }
+        
+        .messages-container {
+            height: var(--chat-height);
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--pico-card-background-color);
+        }
+        
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: var(--pico-border-radius);
+            font-size: 0.9rem;
+        }
+        
+        .message.delivered {
+            background: var(--valkey-green-000);
+            border-left: 3px solid var(--valkey-green-200);
+            color: var(--valkey-green-300);
+        }
+        
+        .message.failed {
+            background: var(--valkey-red-000);
+            border-left: 3px solid var(--valkey-red-200);
+            color: var(--valkey-red-300);
+        }
+        
+        .message.system {
+            background: var(--valkey-blue-vibrant-000);
+            border-left: 3px solid var(--valkey-blue-vibrant-300);
+            color: var(--valkey-blue-vibrant-300);
+            font-style: italic;
+        }
+        
+        .message-time {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--pico-muted-color);
+            min-width: 60px;
+            flex-shrink: 0;
+        }
+        
+        .message-content {
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .message-status {
+            font-size: 0.75rem;
+            font-weight: bold;
+            min-width: 15px;
+            text-align: center;
+        }
+        
+        .message.delivered .message-status { color: var(--valkey-green-300); }
+        .message.failed .message-status { color: var(--valkey-red-300); }
+        
+        .empty-state {
+            text-align: center;
+            color: var(--pico-muted-color);
+            font-style: italic;
+            margin-top: 2rem;
+        }
+        
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid var(--pico-border-color);
+            background: var(--pico-background-color);
+        }
+        
+        .chat-controls {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--pico-border-color);
+            background: var(--pico-background-color);
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .chat-controls button {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            margin: 0;
+        }
+        
+        .global-controls {
+            text-align: center;
+            padding: 1.5rem 0;
+            border-top: 2px solid var(--pico-border-color);
+            margin-top: 2rem;
+        }
+        
+        .global-controls .grid {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .demo-explanation {
+            background: var(--pico-card-background-color);
+            border: 1px solid var(--pico-border-color);
+            border-radius: var(--pico-border-radius);
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .explanation-section {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: var(--pico-border-radius);
+        }
+        
+        .explanation-problem {
+            background: var(--valkey-red-000);
+            border-left: 4px solid var(--valkey-red-200);
+            color: var(--valkey-red-300);
+        }
+        
+        .explanation-solution {
+            background: var(--valkey-green-000);
+            border-left: 4px solid var(--valkey-green-200);
+            color: var(--valkey-green-300);
+        }
+        
+        .explanation-section h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .explanation-section p {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .explanation-section code {
+            background: rgba(0,0,0,0.1);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container" x-data="demoApp()" x-init="init()">
+        <!-- Demo Header -->
+        <header class="demo-header">
+            <h1>Valkey GLIDE Demo</h1>
+            <p>Chat Resilience & Scalability Comparison</p>
+        </header>
+
+        <!-- Dual Chat Interface -->
+        <section class="chat-grid">
+            <!-- User A Chat Window -->
+            <article class="chat-window" x-data="chatWindow('userA', 'node-redis')" x-init="initChat()">
+                <!-- Chat Header -->
+                <header class="chat-header">
+                    <div class="user-info">
+                        <h3>User A</h3>
+                        <small class="client-badge" :class="'client-' + clientType.replace('-', '')" x-text="clientType"></small>
+                    </div>
+                    <div class="status-indicators">
+                        <span class="status-badge" 
+                              :class="connected ? 'status-connected' : 'status-disconnected'"
+                              x-text="connected ? 'Connected' : 'Disconnected'"></span>
+                        <span class="status-badge" 
+                              :class="subscribed ? 'status-subscribed' : 'status-unsubscribed'"
+                              x-text="subscribed ? 'Subscribed' : 'Lost'"></span>
+                    </div>
+                </header>
+
+                <!-- Messages -->
+                <div class="messages-container" x-ref="messagesA">
+                    <template x-for="message in messages" :key="message.id">
+                        <div class="message" 
+                             :class="message.type === 'system' ? 'system' : (message.delivered ? 'delivered' : 'failed')">
+                            <span class="message-time" x-text="message.time"></span>
+                            <span class="message-content" x-text="message.content"></span>
+                            <span class="message-status" 
+                                  x-show="message.type !== 'system'"
+                                  x-text="message.delivered ? '✓' : '✗'"></span>
+                        </div>
+                    </template>
+                    
+                    <div x-show="messages.length === 0" class="empty-state">
+                        <p>No messages yet. Start chatting!</p>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <form @submit.prevent="sendMessage" class="chat-input">
+                    <fieldset role="group">
+                        <input x-model="newMessage" 
+                               type="text"
+                               placeholder="Type as User A..." 
+                               :disabled="!connected">
+                        <button type="submit" 
+                                :disabled="!connected || !newMessage.trim()">
+                            Send
+                        </button>
+                    </fieldset>
+                </form>
+
+                <!-- Controls -->
+                <div class="chat-controls">
+                    <button @click="switchClient" 
+                            :disabled="switching"
+                            class="secondary">
+                        <span x-text="switching ? 'Switching...' : `Switch to ${nextClientType}`"></span>
+                    </button>
+                    <button @click="simulateFailure" 
+                            :disabled="!connected"
+                            class="contrast">
+                        Simulate Failure
+                    </button>
+                </div>
+            </article>
+
+            <!-- User B Chat Window -->
+            <article class="chat-window" x-data="chatWindow('userB', 'valkey-glide')" x-init="initChat()">
+                <!-- Chat Header -->
+                <header class="chat-header">
+                    <div class="user-info">
+                        <h3>User B</h3>
+                        <small class="client-badge" :class="'client-' + clientType.replace('-', '')" x-text="clientType"></small>
+                    </div>
+                    <div class="status-indicators">
+                        <span class="status-badge" 
+                              :class="connected ? 'status-connected' : 'status-disconnected'"
+                              x-text="connected ? 'Connected' : 'Disconnected'"></span>
+                        <span class="status-badge" 
+                              :class="subscribed ? 'status-subscribed' : 'status-unsubscribed'"
+                              x-text="subscribed ? 'Subscribed' : 'Lost'"></span>
+                    </div>
+                </header>
+
+                <!-- Messages -->
+                <div class="messages-container" x-ref="messagesB">
+                    <template x-for="message in messages" :key="message.id">
+                        <div class="message" 
+                             :class="message.type === 'system' ? 'system' : (message.delivered ? 'delivered' : 'failed')">
+                            <span class="message-time" x-text="message.time"></span>
+                            <span class="message-content" x-text="message.content"></span>
+                            <span class="message-status" 
+                                  x-show="message.type !== 'system'"
+                                  x-text="message.delivered ? '✓' : '✗'"></span>
+                        </div>
+                    </template>
+                    
+                    <div x-show="messages.length === 0" class="empty-state">
+                        <p>No messages yet. Start chatting!</p>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <form @submit.prevent="sendMessage" class="chat-input">
+                    <fieldset role="group">
+                        <input x-model="newMessage" 
+                               type="text"
+                               placeholder="Type as User B..." 
+                               :disabled="!connected">
+                        <button type="submit" 
+                                :disabled="!connected || !newMessage.trim()">
+                            Send
+                        </button>
+                    </fieldset>
+                </form>
+
+                <!-- Controls -->
+                <div class="chat-controls">
+                    <button @click="switchClient" 
+                            :disabled="switching"
+                            class="secondary">
+                        <span x-text="switching ? 'Switching...' : `Switch to ${nextClientType}`"></span>
+                    </button>
+                    <button @click="simulateFailure" 
+                            :disabled="!connected"
+                            class="contrast">
+                        Simulate Failure
+                    </button>
+                </div>
+            </article>
+        </section>
+
+        <!-- Global Demo Controls -->
+        <section class="global-controls">
+            <div class="grid">
+                <button @click="clearAllMessages" class="outline">
+                    Clear All Messages
+                </button>
+                <button @click="resetDemo" class="secondary">
+                    Reset Demo
+                </button>
+                <button @click="simulateNetworkIssue" class="contrast">
+                    Simulate Network Issue
+                </button>
+            </div>
+        </section>
+
+        <!-- Demo Explanation -->
+        <section class="demo-explanation">
+            <h3>Demo Guide</h3>
+            
+            <div class="explanation-section explanation-problem">
+                <h4>🔴 The Problem with node-redis</h4>
+                <p><strong>Issue:</strong> When connection is lost, subscriptions are not automatically restored. Manual reconnection handling and re-subscription is required.</p>
+                <p><strong>Try this:</strong> Have both users chat normally, then simulate failure on User A. Notice how User A misses messages even after reconnection.</p>
+            </div>
+            
+            <div class="explanation-section explanation-solution">
+                <h4>🟢 The valkey-glide Solution</h4>
+                <p><strong>Solution:</strong> Declarative <code>pubsubSubscriptions</code> configuration automatically maintains subscription state during reconnections.</p>
+                <p><strong>Bonus:</strong> Uses Sharded Pub/Sub for better cluster scalability - messages are routed efficiently instead of flooding all nodes.</p>
+                <p><strong>Try this:</strong> Switch User A to valkey-glide, then simulate failure again. Watch how subscriptions are automatically restored.</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="chat-app.js"></script>
+</body>
+</html>
