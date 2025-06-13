@@ -1,0 +1,77 @@
+{
+  "name": "valkey-glide-demo-frontend",
+  "version": "1.0.0",
+  "description": "Professional frontend demo showcasing Valkey GLIDE chat resilience and scalability",
+  "main": "index.html",
+  "scripts": {
+    "start": "./dev-server.sh",
+    "serve": "npx http-server . -p 8080 -c-1 --cors",
+    "build": "echo 'No build step required - open index.html directly'",
+    "test": "echo 'Manual testing - see README.md for checklist'",
+    "validate": "npx html-validate index.html",
+    "format": "npx prettier --write '**/*.{html,css,js,json,md}'"
+  },
+  "keywords": [
+    "valkey",
+    "glide",
+    "redis",
+    "pubsub",
+    "websocket",
+    "alpine.js",
+    "demo",
+    "chat",
+    "resilience",
+    "scalability"
+  ],
+  "author": "Valkey GLIDE Demo Team",
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "prettier": "^3.0.0",
+    "html-validate": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/valkey-io/valkey-glide"
+  },
+  "homepage": "https://valkey.io/",
+  "bugs": {
+    "url": "https://github.com/valkey-io/valkey-glide/issues"
+  },
+  "config": {
+    "demo": {
+      "frontendPort": 8080,
+      "backendUrl": "ws://localhost:3000",
+      "clientTypes": ["node-redis", "valkey-glide"],
+      "defaultRoom": "demo-chat",
+      "autoPublishers": {
+        "alice": {
+          "interval": 3,
+          "enabled": true
+        },
+        "bob": {
+          "interval": 4,
+          "enabled": true
+        }
+      }
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not mobile"
+  ],
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 100,
+    "htmlWhitespaceSensitivity": "css"
+  }
+}

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valkey GLIDE Demo - Chat Resilience & Scalability</title>
+    
+    <!-- Pico CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Custom Valkey Styling -->
+    <link rel="stylesheet" href="./styles/valkey-theme.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Demo Configuration -->
+    <script src="./js/demo-config.js"></script>
+</head>
+<body>
+    <div class="demo-layout" x-data="valkeyDemo()" x-init="init()">
+        <!-- Header Section -->
+        <header class="demo-header">
+            <div class="container">
+                <div class="demo-title">
+                    <h1>▲ Valkey GLIDE Demo</h1>
+                    <p class="subtitle">Professional Chat Resilience & Scalability Demonstration</p>
+                </div>
+                
+                <!-- Global Action Bar -->
+                <div class="header-actions">
+                    <button @click="simulateFailure()" class="btn btn--danger btn--sm">⟡ Simulate Failure</button>
+                    <button @click="resetDemo()" class="btn btn--secondary btn--sm">↻ Reset Demo</button>
+                    <button @click="explainScaling()" class="btn btn--primary btn--outline btn--sm">→ Explain Scaling</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Left Sidebar: Configuration & Setup -->
+        <aside class="demo-sidebar">
+            <div class="sidebar-content">
+                <h3 class="sidebar-title">⚙ Configuration</h3>
+                <!-- Publisher Configuration Card -->
+                <div class="card">
+                    <div class="card__header">
+                        <h4 class="card__title">Publisher Setup</h4>
+                        <p class="card__subtitle">Configure auto-publishers</p>
+                    </div>
+                    
+                    <div class="publisher-controls">
+                        <div class="publisher-config">
+                            <label>Alice</label>
+                            <div class="controls-group">
+                                <input type="checkbox" x-model="publishers.alice.auto" id="alice-auto">
+                                <label for="alice-auto">Auto</label>
+                                <input type="number" x-model="publishers.alice.interval" min="1" max="10" class="interval-input">
+                                <span>seconds</span>
+                                <span class="status" :class="publishers.alice.status">
+                                    <template x-if="publishers.alice.status === 'active'">●</template>
+                                    <template x-if="publishers.alice.status === 'inactive'">○</template>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="publisher-config">
+                            <label>Bob</label>
+                            <div class="controls-group">
+                                <input type="checkbox" x-model="publishers.bob.auto" id="bob-auto">
+                                <label for="bob-auto">Auto</label>
+                                <input type="number" x-model="publishers.bob.interval" min="1" max="10" class="interval-input">
+                                <span>seconds</span>
+                                <span class="status" :class="publishers.bob.status">
+                                    <template x-if="publishers.bob.status === 'active'">●</template>
+                                    <template x-if="publishers.bob.status === 'inactive'">○</template>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="publisher-config">
+                            <label>Carol</label>
+                            <div class="controls-group">
+                                <span>Manual Control</span>
+                                <button @click="sendManualMessage('Carol')" 
+                                        class="btn btn--secondary btn--outline btn--sm"
+                                        :disabled="!wsConnected">
+                                    Send Message
+                                </button>
+                                <div class="status-indicator status-indicator--success">
+                                    <div class="status-indicator__dot"></div>
+                                    <span class="status-indicator__label">Ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-actions">
+                        <button @click="savePublisherSettings()" class="btn btn--primary btn--sm">⮹ Save Settings</button>
+                    </div>
+                </div>
+
+                <!-- Monitoring Configuration Card -->
+                <div class="card">
+                    <div class="card__header">
+                        <h4 class="card__title">■ Monitoring</h4>
+                        <p class="card__subtitle">Backend logs configuration</p>
+                    </div>
+                    
+                    <div class="monitoring-controls">
+                        <div class="control-group">
+                            <input type="checkbox" x-model="autoScrollLogs" id="auto-scroll">
+                            <label for="auto-scroll">↓ Auto-scroll logs</label>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="log-filter">Filter level:</label>
+                            <select x-model="logFilter" id="log-filter" class="log-filter">
+                                <option value="all">⊞ All Messages</option>
+                                <option value="error">× Errors Only</option>
+                                <option value="warn">⚠ Warnings +</option>
+                                <option value="info">i Info +</option>
+                                <option value="debug">⋄ Debug +</option>
+                            </select>
+                        </div>
+                        
+                        <div class="export-actions">
+                            <button @click="exportLogs()" class="btn btn--secondary btn--outline btn--sm">⟐ Export Logs</button>
+                            <button @click="showStats()" class="btn btn--secondary btn--outline btn--sm">■ Show Stats</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="demo-main">
+            <div class="clients-comparison">
+                <!-- Node-Redis Client -->
+                <div class="client-panel" id="node-redis-client">
+                    <header class="client-header">
+                        <h2>NODE-REDIS CLIENT</h2>
+                        <p class="client-subtitle">(Standard Redis Client)</p>
+                    </header>
+
+                    <!-- Room Management -->
+                    <div class="room-management">
+                        <div class="room-selector">
+                            <label>Current Room:</label>
+                            <select x-model="nodeRedisCurrentRoom" @change="joinRoom('node-redis', $event.target.value)">
+                                <option value="">Select room...</option>
+                                <template x-for="room in availableRooms">
+                                    <option :value="room" x-text="room"></option>
+                                </template>
+                            </select>
+                            <button @click="leaveRoom('node-redis')" class="btn btn--secondary btn--outline btn--sm">Leave</button>
+                        </div>
+                    </div>
+
+                    <!-- Connection Status Dashboard -->
+                    <div class="status-dashboard">
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">Connection:</span>
+                                <div class="status-indicator" :class="'status-indicator--' + nodeRedisConnection.status">
+                                    <div class="status-indicator__dot"></div>
+                                    <span x-text="nodeRedisConnection.statusText"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-item">
+                                <span class="status-label">Subscription:</span>
+                                <div class="status-indicator" :class="'status-indicator--' + nodeRedisSubscription.status">
+                                    <div class="status-indicator__dot"></div>
+                                    <span x-text="nodeRedisSubscription.statusText"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-item" x-show="nodeRedisConnection.actionRequired">
+                                <span class="status-label">Action Required:</span>
+                                <div class="action-buttons">
+                                    <button @click="rejoinRoom('node-redis')" class="btn btn--primary btn--sm">↻ Rejoin Room</button>
+                                    <button @click="resubscribe('node-redis')" class="btn btn--secondary btn--sm">⟲ Resubscribe</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>                        <!-- Chat Messages -->
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <h3>◈ Chat Messages</h3>
+                            <span class="message-count" x-text="nodeRedisMessages.length + ' messages'"></span>
+                        </div>
+                        <div class="chat-messages" id="node-redis-messages">
+                            <template x-for="message in nodeRedisMessages">
+                                <div class="message-item" :class="message.type">
+                                    <div class="message-meta">
+                                        <span class="message-author" x-text="message.author"></span>
+                                        <span class="message-time" x-text="message.timestamp"></span>
+                                    </div>
+                                    <div class="message-content" x-text="message.content"></div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Message Input -->
+                        <div class="message-input-container">
+                            <form @submit.prevent="sendMessage('node-redis')" class="message-form">
+                                <fieldset role="group">
+                                    <input type="text" 
+                                           x-model="nodeRedisMessageInput" 
+                                           placeholder="Type message..."
+                                           :disabled="!nodeRedisConnection.canSend">
+                                    <button type="submit" 
+                                            class="btn btn--primary"
+                                            :disabled="!nodeRedisConnection.canSend">
+                                        Send
+                                    </button>
+                                </fieldset>
+                            </form>
+                        </div>
+                        
+                        <!-- Manual Recovery Actions -->
+                        <div class="recovery-actions" x-show="nodeRedisConnection.actionRequired">
+                            <p class="recovery-text">⚠ Action Required:</p>
+                            <div class="recovery-buttons">
+                                <button @click="rejoinRoom('node-redis')" class="btn btn--primary btn--sm">↻ Rejoin Room</button>
+                                <button @click="resubscribe('node-redis')" class="btn btn--secondary btn--sm">⟲ Resubscribe</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Valkey GLIDE Client -->
+                <div class="client-panel" id="valkey-glide-client">
+                    <header class="client-header">
+                        <h2>VALKEY GLIDE CLIENT</h2>
+                        <p class="client-subtitle">(Advanced Valkey Client)</p>
+                    </header>
+
+                    <!-- Room Management -->
+                    <div class="room-management">
+                        <div class="room-selector">
+                            <label>Current Room:</label>
+                            <select x-model="valkeyGlideCurrentRoom" @change="joinRoom('valkey-glide', $event.target.value)">
+                                <option value="">Select room...</option>
+                                <template x-for="room in availableRooms">
+                                    <option :value="room" x-text="room"></option>
+                                </template>
+                            </select>
+                            <button @click="leaveRoom('valkey-glide')" class="btn btn--secondary btn--outline btn--sm">Leave</button>
+                        </div>
+                    </div>
+
+                    <!-- Connection Status Dashboard -->
+                    <div class="status-dashboard">
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">Connection:</span>
+                                <div class="status-indicator" :class="'status-indicator--' + valkeyGlideConnection.status">
+                                    <div class="status-indicator__dot"></div>
+                                    <span x-text="valkeyGlideConnection.statusText"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-item">
+                                <span class="status-label">Subscription:</span>
+                                <div class="status-indicator" :class="'status-indicator--' + valkeyGlideSubscription.status">
+                                    <div class="status-indicator__dot"></div>
+                                    <span x-text="valkeyGlideSubscription.statusText"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-item">
+                                <span class="status-label">Auto-Recovery:</span>
+                                <div class="status-badge status-badge--success">
+                                    <span>✓ ENABLED</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <h3>◈ Chat Messages</h3>
+                            <span class="message-count" x-text="valkeyGlideMessages.length + ' messages'"></span>
+                        </div>
+                        <div class="chat-messages" id="valkey-glide-messages">
+                            <template x-for="message in valkeyGlideMessages">
+                                <div class="message-item" :class="message.type">
+                                    <div class="message-meta">
+                                        <span class="message-author" x-text="message.author"></span>
+                                        <span class="message-time" x-text="message.timestamp"></span>
+                                    </div>
+                                    <div class="message-content" x-text="message.content"></div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Message Input -->
+                        <div class="message-input-container">
+                            <form @submit.prevent="sendMessage('valkey-glide')" class="message-form">
+                                <fieldset role="group">
+                                    <input type="text" 
+                                           x-model="valkeyGlideMessageInput" 
+                                           placeholder="Type message..."
+                                           :disabled="!valkeyGlideConnection.canSend">
+                                    <button type="submit" 
+                                            class="btn btn--primary"
+                                            :disabled="!valkeyGlideConnection.canSend">
+                                        Send
+                                    </button>
+                                </fieldset>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar: Real-time Logs -->
+        <aside class="demo-logs">
+            <div class="logs-content">
+                <h3 class="logs-title">■ System Logs</h3>
+                
+                <!-- Log Tabs -->
+                <div class="tab-nav">
+                    <button @click="activeLogTab = 'node-redis'" :class="activeLogTab === 'node-redis' ? 'active' : ''" class="tab-button">
+                        Node-Redis
+                    </button>
+                    <button @click="activeLogTab = 'valkey-glide'" :class="activeLogTab === 'valkey-glide' ? 'active' : ''" class="tab-button">
+                        Valkey GLIDE
+                    </button>
+                    <button @click="activeLogTab = 'system'" :class="activeLogTab === 'system' ? 'active' : ''" class="tab-button">
+                        System
+                    </button>
+                </div>
+
+                <!-- Log Display -->
+                <div class="log-display" x-show="logsVisible">
+                    <div class="log-container">
+                        <template x-for="log in filteredLogs">
+                            <div class="log-entry" :class="'log-level--' + log.level">
+                                <span class="log-timestamp" x-text="log.timestamp"></span>
+                                <span class="log-level" x-text="log.level"></span>
+                                <span class="log-message" x-text="log.message"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- Scaling Modal -->
+        <div class="modal" x-show="showScalingModal" x-transition @click.self="showScalingModal = false">
+            <div class="modal__content">
+                <div class="modal__header">
+                    <h2 class="modal__title">◉ Scaling with Sharded Pub/Sub</h2>
+                    <button @click="showScalingModal = false" class="modal__close btn btn--ghost btn--sm">×</button>
+                </div>
+                <div class="modal__body">
+                    <div class="scaling-explanation">
+                        <h4>Traditional Pub/Sub Problem</h4>
+                        <p>With traditional Redis pub/sub, all messages are broadcast to every node in the cluster, creating unnecessary network overhead.</p>
+                        
+                        <h4>Sharded Pub/Sub Solution</h4>
+                        <p>Valkey GLIDE uses sharded pub/sub channels that distribute messages more efficiently across cluster nodes.</p>
+                        
+                        <div class="code-example">
+                            <h5>Declarative Configuration</h5>
+                            <pre><code>const client = new GlideClusterClient({
+  pubsubSubscriptions: {
+    channelsAndPatterns: {
+      [PubSubChannelModes.Exact]: new Set(['room-1']),
+      [PubSubChannelModes.Sharded]: new Set(['room-1'])
+    },
+    callback: (message, context) => {
+      // Auto-restored on reconnection
+    }
+  }
+});</code></pre>
+                        </div>
+                        
+                        <div class="benefits">
+                            <h4>Key Benefits</h4>
+                            <ul>
+                                <li>▶ Reduced network traffic</li>
+                                <li>▶ Lower processing overhead</li>
+                                <li>▶ Better cluster performance</li>
+                                <li>▶ Automatic subscription restoration</li>
+                                <li>▶ Declarative configuration</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button @click="showScalingModal = false" class="btn btn--primary">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="./js/demo-app.js"></script>
+</body>
+</html>
