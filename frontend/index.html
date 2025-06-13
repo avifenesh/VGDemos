@@ -54,13 +54,34 @@
             --valkey-attention: #3bf;
             
             /* Demo-specific settings */
-            --chat-height: 350px;
+            --chat-height: 400px;
             --status-font-size: 0.8rem;
         }
         
-        .demo-header { text-align: center; margin-bottom: 2rem; }
-        .demo-header h1 { margin-bottom: 0.5rem; }
-        .demo-header p { color: var(--pico-muted-color); }
+        /* Beautiful purple gradient background */
+        body {
+            background: linear-gradient(135deg,rgba(155, 157, 253, 1) 0%,rgba(105, 92, 246, 1) 25%,rgba(123, 85, 247, 1) 50%,rgba(158, 104, 212, 1) 75%,rgba(167, 145, 233, 1) 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Ensure main content has some transparency to let the gradient show through */
+        main {
+            background: rgba(9, 2, 31, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin: 0;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(144, 145, 217, 0.3);
+            color: #fff;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        .demo-header { text-align: center; margin-bottom: 1.5rem; }
+        .demo-header h1 { margin-bottom: 0.5rem; color: #ffffff; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .demo-header p { color: rgba(255, 255, 255, 0.9); }
         
         .chat-grid { 
             display: grid; 
@@ -77,22 +98,26 @@
         }
         
         .chat-window {
-            border: 1px solid var(--pico-border-color);
+            border: 1px solid rgba(167, 145, 233, 0.3);
             border-radius: var(--pico-border-radius);
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(123, 85, 247, 0.2);
         }
         
         .chat-header {
-            background: var(--pico-background-color);
+            background: rgba(123, 85, 247, 0.15);
             padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--pico-border-color);
+            border-bottom: 1px solid rgba(167, 145, 233, 0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: #fff;
         }
         
-        .user-info h3 { margin: 0; font-size: 1rem; }
-        .user-info small { color: var(--pico-muted-color); }
+        .user-info h3 { margin: 0; font-size: 1rem; color: #fff; }
+        .user-info small { color: rgba(255, 255, 255, 0.8); }
         
         .status-indicators {
             display: flex;
@@ -109,25 +134,29 @@
         }
         
         .status-connected { 
-            background: var(--valkey-green-000); 
-            color: var(--valkey-green-300); 
+            background: rgba(167, 145, 233, 0.3); 
+            color: rgba(167, 145, 233, 1); 
+            border: 1px solid rgba(167, 145, 233, 0.5);
         }
         .status-disconnected { 
-            background: var(--valkey-red-000); 
-            color: var(--valkey-red-300); 
+            background: rgba(255, 107, 107, 0.3); 
+            color: rgba(255, 107, 107, 1); 
+            border: 1px solid rgba(255, 107, 107, 0.5);
         }
         .status-subscribed { 
-            background: var(--valkey-blue-vibrant-000); 
-            color: var(--valkey-blue-vibrant-300); 
+            background: rgba(167, 145, 233, 0.3); 
+            color: rgba(167, 145, 233, 1); 
+            border: 1px solid rgba(167, 145, 233, 0.5);
         }
         .status-unsubscribed { 
-            background: var(--valkey-yellow-000); 
-            color: var(--valkey-yellow-100); 
+            background: rgba(255, 193, 107, 0.3); 
+            color: rgba(255, 193, 107, 1); 
+            border: 1px solid rgba(255, 193, 107, 0.5);
         }
         
         .client-badge {
-            background: var(--valkey-grey-lt-000);
-            color: var(--valkey-grey-dk-200);
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
             padding: 0.2rem 0.5rem;
             border-radius: var(--pico-border-radius);
             font-size: var(--status-font-size);
@@ -135,19 +164,22 @@
         }
         
         .client-noderedis { 
-            background: var(--valkey-yellow-000); 
-            color: var(--valkey-yellow-100); 
+            background: rgba(255, 193, 107, 0.3); 
+            color: rgba(255, 193, 107, 1); 
+            border: 1px solid rgba(255, 193, 107, 0.5);
         }
         .client-valkeyglide { 
-            background: var(--valkey-green-000); 
-            color: var(--valkey-green-300); 
+            background: rgba(123, 217, 200, 0.3); 
+            color: rgba(123, 217, 200, 1); 
+            border: 1px solid rgba(123, 217, 200, 0.5);
         }
         
         .messages-container {
             height: var(--chat-height);
             overflow-y: auto;
             padding: 1rem;
-            background: var(--pico-card-background-color);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
         }
         
         .message {
@@ -182,9 +214,13 @@
         .message-time {
             font-family: monospace;
             font-size: 0.75rem;
-            color: var(--pico-muted-color);
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
             min-width: 60px;
             flex-shrink: 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
         
         .message-content {
@@ -204,36 +240,120 @@
         
         .empty-state {
             text-align: center;
-            color: var(--pico-muted-color);
+            color: rgba(255, 255, 255, 0.6);
             font-style: italic;
             margin-top: 2rem;
         }
         
         .chat-input {
             padding: 1rem;
-            border-top: 1px solid var(--pico-border-color);
-            background: var(--pico-background-color);
+            border-top: 1px solid rgba(167, 145, 233, 0.3);
+            background: rgba(123, 85, 247, 0.08);
+            backdrop-filter: blur(15px);
+        }
+        
+        .chat-input input[type="text"] {
+            background: rgba(255, 255, 255, 0.25) !important;
+            border: 2px solid rgba(255, 255, 255, 0.4) !important;
+            color: #ffffff !important;
+            backdrop-filter: blur(10px);
+            border-radius: 12px !important;
+            padding: 0.75rem 1rem !important;
+            font-size: 0.9rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .chat-input input[type="text"]:focus {
+            border: 2px solid rgba(167, 145, 233, 1) !important;
+            background: rgba(255, 255, 255, 0.35) !important;
+            box-shadow: 0 0 0 3px rgba(167, 145, 233, 0.3) !important;
+            transform: translateY(-1px) !important;
+        }
+        
+        .chat-input input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-weight: 500;
+        }
+        
+        .chat-input button {
+            background: linear-gradient(135deg, rgba(167, 145, 233, 1), rgba(123, 85, 247, 1)) !important;
+            border: none !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            border-radius: 12px !important;
+            padding: 0.75rem 1.5rem !important;
+            font-size: 0.9rem !important;
+            text-shadow: none;
+            box-shadow: 0 4px 12px rgba(123, 85, 247, 0.4) !important;
+            transition: all 0.3s ease !important;
+            letter-spacing: 0.5px;
+        }
+        
+        .chat-input button:hover {
+            background: linear-gradient(135deg, rgba(167, 145, 233, 1), rgba(105, 92, 246, 1)) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 18px rgba(123, 85, 247, 0.5) !important;
+        }
+        
+        .chat-input button:active {
+            transform: translateY(0px) !important;
         }
         
         .chat-controls {
             padding: 0.75rem 1rem;
-            border-top: 1px solid var(--pico-border-color);
-            background: var(--pico-background-color);
+            border-top: 1px solid rgba(167, 145, 233, 0.2);
+            background: rgba(123, 85, 247, 0.05);
+            backdrop-filter: blur(15px);
             display: flex;
-            gap: 0.5rem;
+            gap: 0.75rem;
             flex-wrap: wrap;
         }
         
         .chat-controls button {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.8rem;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
             margin: 0;
+            border-radius: 10px !important;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .chat-controls button.secondary {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .chat-controls button.secondary:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
+        
+        .chat-controls button.contrast {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.9), rgba(255, 87, 87, 0.9)) !important;
+            border: 1px solid rgba(255, 107, 107, 0.6) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .chat-controls button.contrast:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 1), rgba(255, 87, 87, 1)) !important;
+            border: 1px solid rgba(255, 107, 107, 0.8) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3) !important;
+            font-weight: 700 !important;
         }
         
         .global-controls {
             text-align: center;
-            padding: 1.5rem 0;
-            border-top: 2px solid var(--pico-border-color);
+            padding: 0.8rem 0.4rem;
+            border-top: 1px solid rgba(167, 145, 233, 0.3);
             margin-top: 2rem;
         }
         
@@ -243,40 +363,48 @@
         }
         
         .demo-explanation {
-            background: var(--pico-card-background-color);
-            border: 1px solid var(--pico-border-color);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(167, 145, 233, 0.3);
             border-radius: var(--pico-border-radius);
-            padding: 1.5rem;
-            margin-top: 2rem;
+            padding: 0.6rem;
+            margin-top: 0.2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(123, 85, 247, 0.2);
+        }
+        
+        .demo-explanation h3 {
+            color: #fff;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
         }
         
         .explanation-section {
-            margin-bottom: 1rem;
-            padding: 1rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
             border-radius: var(--pico-border-radius);
         }
         
         .explanation-problem {
-            background: var(--valkey-red-000);
-            border-left: 4px solid var(--valkey-red-200);
-            color: var(--valkey-red-300);
+            background: rgba(255, 107, 107, 0.2);
+            border-left: 4px solid rgba(255, 107, 107, 0.8);
+            color: rgba(255, 107, 107, 1);
         }
         
         .explanation-solution {
-            background: var(--valkey-green-000);
-            border-left: 4px solid var(--valkey-green-200);
-            color: var(--valkey-green-300);
+            background: rgba(123, 217, 200, 0.2);
+            border-left: 4px solid rgba(123, 217, 200, 0.8);
+            color: rgba(123, 217, 200, 1);
         }
         
         .explanation-section h4 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1rem;
+            margin: 0 0 0.4rem 0;
+            font-size: 0.95rem;
         }
         
         .explanation-section p {
-            margin: 0 0 0.5rem 0;
-            font-size: 0.9rem;
-            line-height: 1.4;
+            margin: 0 0 0.4rem 0;
+            font-size: 0.85rem;
+            line-height: 1.3;
         }
         
         .explanation-section code {
